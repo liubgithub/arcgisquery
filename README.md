@@ -1,4 +1,4 @@
-# maptalks.featurelayer
+# maptalks.arcgisquery
 
 [![CircleCI](https://circleci.com/gh/maptalks/maptalks.arcgisquery.svg?style=shield)](https://circleci.com/gh/MapTalks/maptalks.arcgisquery)
 
