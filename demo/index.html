@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>地图服务</title>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        html, body {
+            margin: 0px;background-color:black;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/maptalks@<2.0.0/dist/maptalks.css">
+   <script type="text/javascript" src="https://unpkg.com/maptalks@<2.0.0/dist/maptalks.min.js"></script>
+   <script type="text/javascript" src="maptalks.featurelayer.min.js"></script>
+    <script src="../dist/maptalks.arcgisquery.js"></script>
+    <script src="jquery-1.9.1.min.js"></script>
+    <script type="text/javascript">
+               var map;
+        function initMap() {
+            map = new maptalks.Map("map", {
+                center: [109.20749554050774, 34.36776742218806],//[109.20749554050774, 34.36776742218806], //[175.27, -37.79],
+                zoom: 3,
+                minZoom: 1,
+                maxZoom: 10,
+                view: {
+                    projection: 'EPSG:4326',
+                    resolutions: [
+                       0.0013748335334806893,
+                       0.0006874167667403447,
+                       3.4370838337017233E-4,
+                       1.7185419168508616E-4,
+                       8.592709584254308E-5,
+                       4.296354792127154E-5,
+                       2.148177396063577E-5,
+                       1.0740886980317885E-5,
+                       5.370443490158943E-6,
+                       2.684032014576556E-6
+                    ],
+                    fullExtent: {
+                        'top': 90,
+                        'bottom': 0,
+                        'left': 0,
+                        'right': 180
+                    }
+                },
+                baseLayer: new maptalks.TileLayer("tile", {
+                    tileSystem: [1, -1, -400, 400],
+                    urlTemplate: 'http://117.36.75.134:6080/arcgis/rest/services/LT/DeepBlueMap0928touming/MapServer/tile/{z}/{y}/{x}'
+                })
+            });
+        }
+        $(function (){
+            initMap();
+            var resultLayer = new maptalks.VectorLayer('result').addTo(map);
+            var layer = new maptalks.VectorLayer("layer").addTo(map);
+            var wg = new maptalks.FeatureLayer('wg', 'http://116.211.31.253:8712/ArcGIS/rest/services/lt/JSD/MapServer/3').addTo(map);
+
+            var drawTool = new maptalks.DrawTool({
+                symbol:{
+                    lineColor: "#f00",
+                    polygonFill: "#0f0",
+                    polygonOpacity:0.6
+                },
+                mode: 'Point'
+            }).addTo(map).disable();
+            drawTool.on('drawstart', function () {
+                layer.clear();
+            })
+            drawTool.on('drawend', function (param) {
+                var geo=param.geometry
+                layer.addGeometry(geo);
+                var coords = geo.getCoordinates()[0];
+                var coordinates = [];
+                coords.forEach(function (c) {
+                    coordinates.push([c.x, c.y]);
+                });
+                console.log(coordinates.toString());
+                //var inputGeometry = "{" +
+                //    "rings: [[[109.2280321164141, 34.39182700902397], [109.22609875675764, 34.387530654231846], [109.23314477861673, 34.38637063843797], [109.23318774216465, 34.38950697743622], [109.2326721795896, 34.391354409996836], [109.2280321164141, 34.39182700902397]]]," +
+                //    "spatialReference: { 'wkid': 4326}" +
+                //"}";
+                var inputGeometry = {
+                        "rings": [coordinates],
+                        "spatialReference": { 'wkid': 4326}
+                }
+                var Query = new maptalks.QueryTask('http://116.211.31.253:8712/ArcGIS/rest/services/lt/JSD/MapServer/3', {
+                    //where: "NAME like '%饺子馆%'",
+                   //geometry:"{xmin:109.25,ymin:34.1,xmax:109.3,ymax:34.5}",
+                    geometry: inputGeometry,
+                    geometryType: "esriGeometryPolygon"
+                });
+                Query.excute(function (result) {
+                    resultLayer.clear();
+                    if (result && result.features) {
+                        var geometries = result.features;
+                        geometries.forEach(function (g) {
+                            var geo = new maptalks.Polygon(g.geometry.rings).addTo(resultLayer);
+                        });
+                    }
+                    //console.log(result);
+                });
+            });
+
+            var items = ['Point', 'LineString', 'Polygon', 'Circle', 'Ellipse', 'Rectangle'].map(function (value) {
+                return {
+                    item: value,
+                    click: function () {
+                        drawTool.setMode(value).enable();
+                    }
+                };
+            });
+
+            var toolbar = new maptalks.control.Toolbar({
+                items: [
+                  {
+                      item: 'Shape',
+                      children: items
+                  },
+                  {
+                      item: 'Disable',
+                      click: function () {
+                          drawTool.disable();
+                      }
+                  },
+                  {
+                      item: 'Clear',
+                      click: function () {
+                          layer.clear();
+                      }
+                  }
+                ]
+            }).addTo(map);
+        });
+    </script>
+</head>
+<body>
+  <div id="map"></div>
+</body>
+</html>
